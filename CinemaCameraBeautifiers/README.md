@@ -25,7 +25,7 @@ You will need:
 - 2 RGB lights
 - White object of any shape
 
-We can capture 4 images where each light in one of two states. By choosing those states(colors) differently, we can measure how mixtures of those colors are bent.
+We can capture 4 images where each light is in one of two states. By choosing those states(colors) differently, we can measure how mixtures of those colors are bent.
 
 So we will do 4 experiments with the following color pairs:
 
