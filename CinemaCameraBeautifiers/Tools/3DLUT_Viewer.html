@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D LUT Viewer — UMD (robust OrbitControls)</title>
+  <style>
+    html,body{height:100%;margin:0;overflow:hidden;font-family:Inter,Segoe UI,Arial}
+    #canvas{display:block;width:100%;height:100%;background:#f5f5f5}
+    .notice{position:fixed;left:8px;top:8px;background:rgba(255,255,255,0.95);padding:6px 10px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.12);font-size:13px;z-index:10}
+    .warning{position:fixed;right:8px;top:8px;background:#fff4e5;padding:6px 10px;border-radius:6px;border:1px solid #e6b87a;color:#6a4b00;font-size:13px}
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div class="notice">Drag to rotate • Right-drag: pan • Scroll to zoom</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/controls/OrbitControls.js';
+
+
+    // Defensive checks
+    if (typeof THREE === 'undefined') {
+      document.body.innerHTML = '<div style="padding:20px;color:#900">Error: Three.js failed to load. Check network or CDN access.</div>';
+      throw new Error('THREE not loaded');
+    }
+
+    const canvas = document.getElementById('canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x808080);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 50);
+    //camera.position.set(1.5, 1.2, 1.8);
+
+
+    const controls = new OrbitControls( camera, renderer.domElement );
+    // controls.update() must be called after any manual changes to the camera's transform
+    camera.position.set( 0, 3, 2 );
+    controls.update();
+
+    // Helpers
+    const axes = new THREE.AxesHelper(1);
+    scene.add(axes);
+
+    const box = new THREE.Box3(new THREE.Vector3(-0.5, -0.5, -0.5), new THREE.Vector3(0.5, 0.5, 0.5));
+    const boxHelper = new THREE.Box3Helper(box, 0x333333);
+    scene.add(boxHelper);
+
+    // --- LUT builders (test cases) ---
+    function buildIdentityLUT(n = 17) {
+      const arr = [];
+      for (let b = 0; b < n; b++) for (let g = 0; g < n; g++) for (let r = 0; r < n; r++) {
+        arr.push([r / (n - 1), g / (n - 1), b / (n - 1)]);
+      }
+      return arr;
+    }
+
+    function buildInverseLUT(n = 9) {
+      const arr = [];
+      for (let b = 0; b < n; b++) for (let g = 0; g < n; g++) for (let r = 0; r < n; r++) {
+        arr.push([1 - r / (n - 1), 1 - g / (n - 1), 1 - b / (n - 1)]);
+      }
+      return arr;
+    }
+
+    // Additional test: small random LUT (helpful to check rendering variety)
+    function buildRandomLUT(n = 8) {
+      const arr = [];
+      for (let i = 0; i < n * n * n; i++) {
+        arr.push([Math.random(), Math.random(), Math.random()]);
+      }
+      return arr;
+    }
+
+    // Render LUT as point cloud
+    function renderLUT(data, pointSize = 0.02) {
+      const prev = scene.getObjectByName('lut_points');
+      if (prev) {
+        prev.geometry.dispose();
+        if (prev.material) prev.material.dispose();
+        scene.remove(prev);
+      }
+
+      const positions = new Float32Array(data.length * 3);
+      const colors = new Float32Array(data.length * 3);
+      for (let i = 0; i < data.length; i++) {
+        const [r, g, b] = data[i];
+        positions[i * 3 + 0] = r - 0.5;
+        positions[i * 3 + 1] = g - 0.5;
+        positions[i * 3 + 2] = b - 0.5;
+        colors[i * 3 + 0] = r;
+        colors[i * 3 + 1] = g;
+        colors[i * 3 + 2] = b;
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      const mat = new THREE.PointsMaterial({ size: pointSize, vertexColors: true, sizeAttenuation: true });
+      const pts = new THREE.Points(geom, mat);
+      pts.name = 'lut_points';
+      scene.add(pts);
+      return pts;
+    }
+
+    // --- Run tests (keep existing tests, add one extra) ---
+    const identity = buildIdentityLUT(17);
+    renderLUT(identity, 0.02);
+
+    // Switch to inverse and back to identity to test dynamic updates
+    /*setTimeout(() => renderLUT(buildInverseLUT(9), 0.03), 1000);
+    setTimeout(() => renderLUT(identity, 0.02), 1800);
+
+    // Additional test: random LUT after a short delay
+    setTimeout(() => renderLUT(buildRandomLUT(6), 0.025), 2600);
+    setTimeout(() => renderLUT(identity, 0.02), 3600);*/
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls && controls.update) controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize handling
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Expose API for debugging
+    window.__lutViewer = { renderLUT, buildIdentityLUT, buildInverseLUT, buildRandomLUT };
+
+    // Developer note: If you want ES module imports instead, run this file via a local dev server
+    // (e.g., `python -m http.server`) and change to module imports for modern bundlers.
+  </script>
+</body>
+</html>
