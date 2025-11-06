@@ -1,0 +1,11 @@
+title: My Jekyll Site
+description: A static website built with Jekyll
+baseurl: "" 
+url: "https://example.com"
+theme: minima
+plugins:
+  - jekyll-readme-index
+readme_index:
+  enabled:          true
+  remove_originals: false
+  with_frontmatter: true

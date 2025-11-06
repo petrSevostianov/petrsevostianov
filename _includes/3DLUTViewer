@@ -1,0 +1,7 @@
+<div style="width:100%; aspect-ratio:1; max-height:512px;">
+    <iframe
+        src="{{'3DLUTViewer.html'|relative_url}}?showChromaTriangle={{include.showChromaTriangle | default: '0'}}&lut={{ page.path | split: '/' | pop | join: '/' | append: '/' | append: include.lut}}"
+        width="100%"
+        height="100%">
+    </iframe>
+</div>

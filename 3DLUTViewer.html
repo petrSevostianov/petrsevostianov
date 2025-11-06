@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D LUT Viewer</title>
+  <style>
+    html,body{
+      height:100%;margin:0;overflow:hidden;font-family:Inter,Segoe UI,Arial
+    }
+    #canvas{display:block;width:100%;height:100%;background:#404040}
+    .icon{
+      pointer-events: none;
+      position:fixed;
+      left:8px;
+      top:8px;
+      width:32px;
+      height:32px;
+      fill:rgba(255, 255, 255, 1);
+    }
+    .notice{position:fixed;left:8px;top:8px;background:rgba(255,255,255,0.95);padding:6px 10px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.12);font-size:13px;z-index:10}
+    .warning{position:fixed;right:8px;top:8px;background:#fff4e5;padding:6px 10px;border-radius:6px;border:1px solid #e6b87a;color:#6a4b00;font-size:13px}
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="icon">
+    <path d="M7.47,21.5C4.2,19.94 1.86,16.76 1.5,13H0C0.5,19.16 5.66,24 11.95,24L12.61,23.97L8.8,20.16L7.47,21.5M8.36,14.96C8.17,14.96 8,14.93 7.84,14.88C7.68,14.82 7.55,14.75 7.44,14.64C7.33,14.54 7.24,14.42 7.18,14.27C7.12,14.13 7.09,13.97 7.09,13.8H5.79C5.79,14.16 5.86,14.5 6,14.75C6.14,15 6.33,15.25 6.56,15.44C6.8,15.62 7.07,15.76 7.38,15.85C7.68,15.95 8,16 8.34,16C8.71,16 9.06,15.95 9.37,15.85C9.69,15.75 9.97,15.6 10.2,15.41C10.43,15.22 10.62,15 10.75,14.69C10.88,14.4 10.95,14.08 10.95,13.72C10.95,13.53 10.93,13.34 10.88,13.16C10.83,13 10.76,12.81 10.65,12.65C10.55,12.5 10.41,12.35 10.25,12.22C10.08,12.09 9.88,12 9.64,11.91C9.84,11.82 10,11.71 10.16,11.58C10.31,11.45 10.43,11.31 10.53,11.16C10.63,11 10.7,10.86 10.75,10.7C10.8,10.54 10.82,10.38 10.82,10.22C10.82,9.86 10.76,9.54 10.64,9.26C10.5,9 10.35,8.75 10.13,8.57C9.93,8.38 9.66,8.24 9.36,8.14C9.05,8.05 8.71,8 8.34,8C8,8 7.65,8.05 7.34,8.16C7.04,8.27 6.77,8.42 6.55,8.61C6.34,8.8 6.17,9 6.04,9.28C5.92,9.54 5.86,9.82 5.86,10.13H7.16C7.16,9.96 7.19,9.81 7.25,9.68C7.31,9.55 7.39,9.43 7.5,9.34C7.61,9.25 7.73,9.17 7.88,9.12C8.03,9.07 8.18,9.04 8.36,9.04C8.76,9.04 9.06,9.14 9.25,9.35C9.44,9.55 9.54,9.84 9.54,10.21C9.54,10.39 9.5,10.55 9.46,10.7C9.41,10.85 9.32,10.97 9.21,11.07C9.1,11.17 8.96,11.25 8.8,11.31C8.64,11.37 8.44,11.4 8.22,11.4H7.45V12.43H8.22C8.44,12.43 8.64,12.45 8.82,12.5C9,12.55 9.15,12.63 9.27,12.73C9.39,12.84 9.5,12.97 9.56,13.13C9.63,13.29 9.66,13.5 9.66,13.7C9.66,14.11 9.54,14.42 9.31,14.63C9.08,14.86 8.76,14.96 8.36,14.96M16.91,9.04C16.59,8.71 16.21,8.45 15.77,8.27C15.34,8.09 14.85,8 14.31,8H11.95V16H14.25C14.8,16 15.31,15.91 15.76,15.73C16.21,15.55 16.6,15.3 16.92,14.97C17.24,14.64 17.5,14.24 17.66,13.78C17.83,13.31 17.92,12.79 17.92,12.21V11.81C17.92,11.23 17.83,10.71 17.66,10.24C17.5,9.77 17.23,9.37 16.91,9.04M16.5,12.2C16.5,12.62 16.47,13 16.38,13.33C16.28,13.66 16.14,13.95 15.95,14.18C15.76,14.41 15.5,14.59 15.24,14.71C14.95,14.83 14.62,14.89 14.25,14.89H13.34V9.12H14.31C15.03,9.12 15.58,9.35 15.95,9.81C16.33,10.27 16.5,10.93 16.5,11.8M11.95,0L11.29,0.03L15.1,3.84L16.43,2.5C19.7,4.06 22.04,7.23 22.39,11H23.89C23.39,4.84 18.24,0 11.95,0Z" />
+  </svg>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/controls/OrbitControls.js';
+
+    function ShowError(message) {
+      console.error(message);
+    }
+
+
+
+    function LoadLUT(url, onLoad){
+      fetch(url).then(res => {
+        if (!res.ok) {
+          ShowError(`Failed to load LUT: ${res.status} ${res.statusText}`);
+          return;
+        }
+        return res.text();
+      }).then(text => {
+        if (text) {
+          onLoad(text);
+        }
+      }).catch(err => {
+        ShowError(`Error loading LUT: ${err.message}`);
+      });
+    }
+
+    /*const params = new URLSearchParams(window.location.search);
+    const lutPath = params.get('lut');
+    console.log('LUT path:', lutPath);
+
+    //load lut file content if provided
+    if (lutPath) {
+      fetch(lutPath).then(res => {
+        if (!res.ok) {
+          throw new Error(`Failed to load LUT file: ${res.status} ${res.statusText}`);
+        }
+        return res.text();
+      }).then(text => {
+        console.log('LUT file content:', text);
+      }).catch(err => {
+        console.error(err);
+      })
+    }*/
+
+    function BuildIdentityLUT(n = 17) {
+      const arr = [];
+      for (let b = 0; b < n; b++)
+      for (let g = 0; g < n; g++)
+      for (let r = 0; r < n; r++) {
+        arr.push([r / (n - 1), g / (n - 1), b / (n - 1)]);
+      }
+      return arr;
+    }
+
+    function Setup3DScene() {
+      const backgroundColor = 0x404040;
+
+      const canvas = document.getElementById('canvas');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      const scene = new THREE.Scene();
+      scene.scale.z = -1;
+      scene.background = new THREE.Color(backgroundColor);
+
+      const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.01, 50);
+      //camera.position.set(1.5, 1.2, 1.8);
+
+
+      const controls = new OrbitControls( camera, renderer.domElement );
+      // controls.update() must be called after any manual changes to the camera's transform
+      camera.position.set( -1.2, 1.2, 2 );
+      controls.target.set( 0.5, 0.4, -0.5 );
+      controls.update();
+
+
+      //unit cube wireframe from (0,0,0) to (1,1,1) with lines of color math the coordinate
+      function AddUnitCubeWireframe() {
+        const geometry = new THREE.BufferGeometry();
+        const vertices = new Float32Array([
+          0,0,0, 1,0,0,
+          1,0,0, 1,1,0,
+          1,1,0, 0,1,0,
+          0,1,0, 0,0,0,
+
+          0,0,1, 1,0,1,
+          1,0,1, 1,1,1,
+          1,1,1, 0,1,1,
+          0,1,1, 0,0,1,
+
+          0,0,0, 0,0,1,
+          1,0,0, 1,0,1,
+          1,1,0, 1,1,1,
+          0,1,0, 0,1,1,
+        ]);
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(vertices, 3));
+        const material = new THREE.LineBasicMaterial({ vertexColors: true });
+        const lines = new THREE.LineSegments(geometry, material);
+        scene.add(lines);
+      }
+      AddUnitCubeWireframe();
+
+      // Render LUT as point cloud
+      
+
+      // --- Run tests (keep existing tests, add one extra) ---
+      //const identity = buildIdentityLUT(17);
+      //AddLUTToScene(scene, lutData, 0.02);
+
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        if (controls && controls.update) controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Resize handling
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    
+      return scene;
+    }
+
+    function ParseLUTText(lutText) {
+      const lines = lutText.split('\n');
+      const data = [];
+      for (let line of lines) {
+        line = line.trim();
+        if (line === '' || line.startsWith('#')) {
+          continue; // skip empty lines and comments
+        }
+        const parts = line.split(/\s+/);
+        if (parts.length >= 3) {
+          const r = parseFloat(parts[0]);
+          const g = parseFloat(parts[1]);
+          const b = parseFloat(parts[2]);
+          //if all parts are floats
+          if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+            data.push([r, g, b]);
+          }
+        }
+      }
+      return data;
+    }
+
+    function AddLUTToScene(scene, data, pointSize = 0.02) {
+      const prev = scene.getObjectByName('lut_points');
+      if (prev) {
+        prev.geometry.dispose();
+        if (prev.material) prev.material.dispose();
+        scene.remove(prev);
+      }
+      let lutSize = Math.cbrt(data.length);
+      const positions = new Float32Array(data.length * 3);
+      const colors = new Float32Array(data.length * 3);
+
+      let index = 0;
+      for (let b = 0; b < lutSize; b++) {
+        for (let g = 0; g < lutSize; g++) {
+          for (let r = 0; r < lutSize; r++) {
+            let sr = r / (lutSize - 1);
+            let sg = g / (lutSize - 1);
+            let sb = b / (lutSize - 1);
+            const [dr, dg, db] = data[index];
+            positions[index * 3 + 0] = dr;
+            positions[index * 3 + 1] = dg;
+            positions[index * 3 + 2] = db;
+            colors[index * 3 + 0] = sr;
+            colors[index * 3 + 1] = sg;
+            colors[index * 3 + 2] = sb;
+            index++;
+            
+          }
+        }
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      const mat = new THREE.PointsMaterial({ size: pointSize, vertexColors: true, sizeAttenuation: true });
+      const pts = new THREE.Points(geom, mat);
+      pts.name = 'lut_points';
+      scene.add(pts);
+      return pts;
+    }
+
+    /*
+    	public static ChromaTriangle CreateFromCubeData(Vector3[] cubeData, int cubeSize, int layer) {
+		if (layer < 0 || layer >= cubeSize) {
+			throw new ArgumentException("Invalid layer index.");
+		}
+		var data = new Vector3[ChromaTriangle.CalcNumVertices(cubeSize)];
+
+		for (int g = 0; g < cubeSize; g++) {
+			for (int r = 0; r < cubeSize - g; r++) {
+				var b = cubeSize - g - r - 1;
+				int indexInCube = r + g * cubeSize + b * cubeSize * cubeSize;
+				int indexInTriangle = ChromaTriangle.GetIndex(r, g, cubeSize);
+				data[indexInTriangle] = cubeData[indexInCube];
+			}
+		}
+		var triangle = new ChromaTriangle(data);
+		return triangle;
+	}
+    */
+    function SelectChromaTriangleFromLUT(lutData, layer){
+      const cubeSize = Math.cbrt(lutData.length);
+      layer = Math.min(Math.max(layer, 0), cubeSize - 1);
+      console.log('Selecting chroma triangle from LUT, cube size:', cubeSize, 'layer:', layer);
+      const triangleData = [];
+      for (let g = 0; g <= layer; g++) {
+        for (let r = 0; r <= layer - g; r++) {
+          let b = layer - g - r;
+          let indexInCube = r + g * cubeSize + b * cubeSize * cubeSize;
+          triangleData.push(lutData[indexInCube]);
+        }
+      }
+      return triangleData;
+    }
+
+
+    /*
+    public Mesh GenerateChromaTriangleMesh(Vector3[] Data, Mesh? mesh = null) {
+		var numVertices = Data.Length;
+		var numFaces = (N - 1) * (N - 1);
+		var indices = new int[numFaces * 3];
+		var vertexData = new Vertex[numVertices * 2];
+		//var colors = new Color[numVertices];
+		int vi = 0;
+		for (int g = 0; g < N; g++) {
+			for (int r = 0; r < N - g; r++) {
+				var b = N - g - r - 1;
+				var nr = r / (float)(N - 1);
+				var ng = g / (float)(N - 1);
+				var nb = b / (float)(N - 1);
+				var position = R * nr + G * ng + B * nb;
+				vertexData[vi] = new Vertex {
+					position = position,
+					data = Data[vi]
+				};
+				//colors[vi] = new Color(nr, ng, nb);
+				vi++;
+			}
+
+		}
+
+		int ti = 0;
+		vi = 0;
+		for (int g = 0; g < N - 1; g++) {
+			int rowLength = N - g - 1;
+			for (int r = 0; r < rowLength - 1; r++) {
+				indices[ti++] = vi;
+				indices[ti++] = vi + rowLength + 1;
+				indices[ti++] = vi + 1;
+
+				indices[ti++] = vi + 1;
+				indices[ti++] = vi + rowLength + 1;
+				indices[ti++] = vi + rowLength + 2;
+				vi++;
+			}
+			indices[ti++] = vi;
+			indices[ti++] = vi + rowLength + 1;
+			indices[ti++] = vi + 1;
+			vi++;
+			vi++;
+		}
+
+
+		if (mesh == null || mesh.vertexCount != numVertices || mesh.subMeshCount != 1) {
+			mesh = new Mesh();
+			mesh.name = "ChromaTriangle";
+		}
+
+		var flags =
+			UnityEngine.Rendering.MeshUpdateFlags.DontValidateIndices
+			| UnityEngine.Rendering.MeshUpdateFlags.DontResetBoneBounds
+			| UnityEngine.Rendering.MeshUpdateFlags.DontNotifyMeshUsers
+			| UnityEngine.Rendering.MeshUpdateFlags.DontRecalculateBounds;
+
+		var layout = new[]{
+			new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+			new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 3)
+		};
+		mesh.SetVertexBufferParams(numVertices, layout);
+		mesh.SetVertexBufferData(vertexData, 0, 0, numVertices, 0, flags);
+		mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt32);
+		mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
+
+		mesh.subMeshCount = 1;
+		mesh.SetSubMesh(0, new SubMeshDescriptor(0, indices.Length));
+
+		mesh.RecalculateBounds();
+
+		return mesh;
+	}
+    */
+
+    function AddChromaTriangleToScene(scene, triangleData) {
+      let cubeSize = (Math.sqrt( 8*triangleData.length +1 ) - 1) / 2;
+      
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(triangleData.length * 3);
+      
+      const colors = new Float32Array(triangleData.length * 3);
+      let index = 0;
+      for (let g = 0; g < cubeSize; g++) {
+        for (let r = 0; r < cubeSize - g; r++){
+          let b = cubeSize - g - r - 1;
+          let sr = r / (cubeSize - 1);
+          let sg = g / (cubeSize - 1);
+          let sb = b / (cubeSize - 1);
+          const [dr, dg, db] = triangleData[index];
+          positions[index * 3 + 0] = dr;
+          positions[index * 3 + 1] = dg;
+          positions[index * 3 + 2] = db;
+          colors[index * 3 + 0] = sr;
+          colors[index * 3 + 1] = sg;
+          colors[index * 3 + 2] = sb;
+          index++;
+        }
+      }
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const indices = [];
+      let ti = 0;
+      let vi = 0;
+      for (let g = 0; g < cubeSize - 1; g++) {
+        let rowLength = cubeSize - g - 1;
+        for (let r = 0; r < rowLength - 1; r++) {
+          indices.push(vi);
+          indices.push(vi + rowLength + 1);
+          indices.push(vi + 1);
+
+          indices.push(vi + 1);
+          indices.push(vi + rowLength + 1);
+          indices.push(vi + rowLength + 2);
+          vi++;
+        }
+        indices.push(vi);
+        indices.push(vi + rowLength + 1);
+        indices.push(vi + 1);
+        vi++;
+        vi++;
+      }
+      geometry.setIndex(indices);
+      const colorMaterial = new THREE.MeshBasicMaterial({ 
+          vertexColors: true, 
+          side: THREE.DoubleSide,
+      });
+      const wireframeMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0x000000,   // black
+          wireframe: true
+      });
+
+
+      const mesh = new THREE.Mesh(geometry, colorMaterial);
+      mesh.name = 'chroma_triangle';
+      scene.add(mesh);
+      const wireframe = new THREE.Mesh(geometry, wireframeMaterial);
+      wireframe.name = 'chroma_triangle_wireframe';
+      scene.add(wireframe);
+    }
+
+    function AddRGBTrianglesToScene(scene) {
+      //white triangle over 3 points (1,0,0), (0,1,0), (0,0,1)
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array([
+        1,0,0, 0,1,0,
+        0,1,0, 0,0,1,
+        0,0,1, 1,0,0
+      ]);
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+      const lines = new THREE.LineSegments(geometry, material);
+      scene.add(lines);
+    }
+      
+
+    const params = new URLSearchParams(window.location.search);
+    const lutUrl = params.get('lut');
+    const showChromaTriangle = params.get('showChromaTriangle'); //int or empty
+
+    const scene = Setup3DScene();
+
+    if (!lutUrl) {
+      var lutData = BuildIdentityLUT(16);
+      ApplyLUTData(lutData);
+    } else {
+      LoadLUT(lutUrl, (lutText) => {
+        var lutData = ParseLUTText(lutText);
+        ApplyLUTData(lutData);
+      });
+    }
+
+    function ApplyLUTData(data){
+      AddLUTToScene(scene, data, 0.02);
+      if (showChromaTriangle !== null) {
+        var layer = parseInt(showChromaTriangle);
+        if (!isNaN(layer) && layer > 0) {
+          console.log('Showing chroma triangle for layer:', layer);
+          const triangleData = SelectChromaTriangleFromLUT(data, layer);
+          AddChromaTriangleToScene(scene, triangleData);
+          AddRGBTrianglesToScene(scene);
+        }
+      }
+    }
+    
+    
+
+    
+
+    
+
+  </script>
+</body>
+</html>
