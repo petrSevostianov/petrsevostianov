@@ -1,0 +1,2 @@
+<video src="{{ page.path | split: '/' | pop | join: '/' | append: '/' | append: include.video_src | relative_url }}" type="video/mov" controls="true" width="100%" aspect-ratio="16/9" autoplay muted loop>
+</video>

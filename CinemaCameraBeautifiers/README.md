@@ -1,9 +1,17 @@
-# Cinema Camera Beautifiers
+---
+title: Cinema Camera Beautifiers
+description: >
+  This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Those transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to reverse-engineer them. The article describes the methodology of measuring, canceling and re-applying such transforms.
+image: /CinemaCameraBeautifiers/Title.png
+---
 
-This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Those transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to reverse-engineer them. The article describes the methodology of measuring, canceling and re-applying such transforms.
+# Cinema Camera Beautifiers
+![Cinema Camera Beautifiers Title](Title.png)
+
+This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Such transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to reverse-engineer them. The article describes the methodology of measuring, canceling and re-applying such transforms.
 
 ## Known approach to linearization.
-Cinema camera raw profiles are packed with transfer functions. To make an image linear, we need to apply an inverse transfer function to the image. 
+Cinema camera raw profiles are packed with transfer functions. To make an image linear, we have to apply the inverse transfer function to the image. 
 Those transfer functions are publicly documented for most cameras.
 
 Here are some references:
@@ -16,16 +24,16 @@ However, it turns out that the transfer function is not the only non-linear oper
 `Sensor data (linear)` ->  `Gamut transform (non-linear)` ->  `Transfer function (non-linear)`  ->  `Encoded image`
 
 ## What is gamut nonlinearity?
-Since light is additive, all mixtures of any two colors should lie on a straight line between those colors. However, due to gamut nonlinearity, those mixtures are bent away from the straight line.
-In simple words, **Half-Yellow**(0.5 0.5 0) will not lie between **Red**(1 0 0) and **Green**(0 1 0). There is a reason why this nonlinear gamut transform exists, but that is a topic for another article.
+Since light is additive, every mixture of two arbitrary colors must lay on a straight line between those colors. However, due to gamut nonlinearity, those mixtures are bent away from the straight line.
+In simple words, **Half-Yellow**(0.5 0.5 0) will not lay between **Red**(1 0 0) and **Green**(0 1 0). There is a reason why this nonlinear gamut transform exists, but that is a topic for another article.
 
 ## Naming
-Since I failed to find any established term for this transformation, I will call it **Beautifier** as we call it internally at [Antilatency](https://antilatency.com). The inverse operation will be called **Debeautifier**. This kind of naming addresses the fact that this transform is an artistic color grading; there is no single "correct" way to do it.
+Since I failed to find any established term for this transformation, I will call it **Beautifier** as we call it internally at [Antilatency](https://antilatency.com). The inverse operation will be accordingly called **Debeautifier**. This kind of naming addresses the fact that this transform is artistic color grading; there is no single "correct" way to do it.
 Sometimes this phenomenon is referred to as **gamut compression**. However, I would prefer not to blur the meaning of that term, since it currently describes a transformation with a specific mathematical form — unlike the more **arbitrary transformations** applied inside cameras.
-Later in this article, the shape of this transform will be shown, and it will be clear that it is not a simple gamut compression.
+Later in this article, the shape of this transform will be shown, and it will become clear that it is not a simple gamut compression.
 
 ## Why should we care about it?
-Virtual production is a set of mathematical operations. Any mathematical operations become invalid once artistic color grading is applied.
+Virtual production is a set of mathematical operations. Any mathematical operation becomes invalid once artistic color grading is applied.
 As I mentioned, **Beautifier** has its role, but it should be applied after all mathematical operations (e.g., keying, lighting calibration, display-to-camera mapping) are completed, **at the end of the pipeline**.
 Otherwise, those operations will produce incorrect results. 
 
@@ -51,50 +59,65 @@ That is a good hack though, and later in this article I will explain why it work
 
 ## How can you spot gamut nonlinearity at home?
 <!-- ## How to find this nonlinearity with a simple experiment? -->
-The experiment called **Two Lights Experiment** relies on the fact that light is additive. So to get an image of a scene illuminated by two lights, we can sum images of each light on separately.
-This experiment can be done with minimal equipment.
+<!-- The **Two Lights Experiment** relies on the fact that light is additive. So to get an image of a scene illuminated by two lights, we can sum images of each light on separately.  -->
+The **Two Lights Experiment** relies on the fact that light is additive. Therefore, for a truly linear camera, the photo of a scene illuminated **by both lights** must be **equal** to the per-pixel **sum of images** of the scene illuminated **by each light separately**. We can use this knowledge to check whether a camera is linear or not. The experiments can be done with minimal equipment.
 
 You will need:
-- Cinema camera
+- A cinema camera
 - 2 RGB lights
 - White object of any shape
 
-We can capture 4 images where each light is in one of two states. By choosing those states(colors) differently, we can measure how mixtures of those colors are bent.
+![Two Lights Experiment Setup](./TwoLightsExperimentSetup.png)
 
-So we will do 4 experiments with the following color pairs:
+First lets capture 4 images (I1, I2, I3, I4), setting lights to one of two colors (states) as shown in the table below.
 
-|Experiment | State A | State B |
-|-----------|---------|---------|
-|1          |  Black  |  White  |
-|2          |  Red    |  Green  |
-|3          |  Green  |  Blue   |
-|4          |  Blue   |  Red    |
-
-For each experiment, we will capture 4 images:
-
-| Image | State of Light 1 | State of Light 2 |
+| Image |          Light 1 |          Light 2 |
 |-------|------------------|------------------|
-|   I1  |   A              |    A             |
-|   I2  |   B              |    B             |
-|   I3  |   A              |    B             |
-|   I4  |   B              |    A             |
+|   I1  |   Black          |    Black         |
+|   I2  |   White          |    White         |
+|   I3  |   Black          |    White         |
+|   I4  |   White          |    Black         |
 
-After **removing the transfer function**, `I1`+`I2` should be equal to `I3`+`I4` if images are linear. Any difference shows nonlinearity.
+Then we remove transfer function from those images, compute the two sums: `I1+I2` and `I3+I4`, and compare them. If the camera were linear, those sums would be equal. Non-zero difference indicates nonlinearity.
 
-![Two Lights Experiment](./TwoLightsExperiment.png)
-In that image we can see the results of the experiments.
-Each row corresponds to one of the experiments above.
-The left column is `I1+I2`, the middle column is `I3+I4`, the right column is the difference (positive and negative) between those sums.
+![Two Lights Experiment Black-White Results](./TwoLightsExperiment_BW.png)
+As expected, the difference is very small (noise scale). That means that mixtures of black and white are **linear**.
 
-Experiment 1 shows very small difference (noise scale). That is what we expect.
-However, experiments 2, 3 and 4 show significant differences. That means that the camera is nonlinear in the gamut plane.
+Now, let's select another color pair for the next experiment: Red and Green.
+So our 4 images in this experiment are:
 
-## Measuring gamut nonlinearity
+| Image |   Light 1        | Light 2          |
+|-------|------------------|------------------|
+|   I1  |   Red            |    Red           |
+|   I2  |   Green          |    Green         |
+|   I3  |   Red            |    Green         |
+|   I4  |   Green          |    Red           |
+
+**Results for Red-Green:**
+![Two Lights Experiment Red-Green Results](./TwoLightsExperiment_RG.png)
+
+As we can see, there is a significant difference between those sums. That means that mixtures of Red and Green are **nonlinear**. 
+
+We can perform the same experiment for other color pairs as well.
+
+**Green-Blue:**
+![Two Lights Experiment Green-Blue Results](./TwoLightsExperiment_GB.png)
+**Blue-Red:**
+![Two Lights Experiment Blue-Red Results](./TwoLightsExperiment_BR.png)
+
+The same nonlinearity is observed there as well.
+
+That experiment shows that the camera images are *linear along brightness*, but *nonlinear across gamut plane*.
+
+## Measuring and isolating gamut nonlinearity
 The experiment above can only show that nonlinearity exists, but does not provide enough data to measure and reverse-engineer it. In order to do that, we've designed a measurement device that is able to precisely display linear colors. This device is based on RGB LEDs with excellent voltage stability and state-of-the-art PWM control.
+
+![Camera Calibrator](CameraCalibrator.png)
 This device is able to display temperature-balanced color sequences with high accuracy, allowing us to probe the camera's response to various color stimuli.
 
-![Camera Calibration Device Frame](CameraCalibratorFrame.png)
-*Here is a frame from the calibration sequence. The central area shows the color to be averaged later to reduce noise; four dots at the corners act as reference points for alignment and as a strobe to split the sequence into samples.*
+{% include Video16_9_Autoplay video_src="CameraCalibratorVideoFragment.mov" %}
+
+Here is a calibration sequence fragment. The central area shows the color to be averaged later to reduce noise; four dots at the corners act as reference points for alignment and as a strobe to split the sequence into samples.
 
 A 12-minute-long calibration video contains 16x16x16=4096 color samples covering the entire RGB cube uniformly.
 
@@ -129,7 +152,7 @@ That leads us to the conclusion that the function we are looking for is [Homogen
 That means that if we scale input color by some factor and apply the function, it is equivalent to applying the function first and then scaling output by the same factor.
 
 ## Visualizing homogeneous transform
-To visualize homogeneous transform, we can slice RGB cube by plane passing through red, green and blue points of the cube. Any distortion of that triangle will represent distortion of the whole cube, because all other colors are laing on scaled versions of this triangle.
+To visualize homogeneous transform, we can slice RGB cube by plane passing through red, green and blue points of the cube. Any distortion of that triangle will represent distortion of the whole cube, because all other colors are laying on scaled versions of this triangle.
 
 To get such slice, we can select samples where indices R+G+B=15 (our cube is 16x16x16 samples).
 Since all slices are similarly distorted, we can select any slice, but slice №15 has the highest resolution.
@@ -191,9 +214,9 @@ In this stage of the pipeline any value sent to LED wall will be captured by cam
 - Composite foreground with linear background
 - Re-apply Beautifier on post if needed.
 
-Important note: Then we re-apply Beautifier on the last stage, we can use a Beautifier from a different camera! As long as these cameras share sensitivity spectrums and primaries are alligned (using matrix3x3 transform).
+Important note: When we re-apply Beautifier at the last stage, we can use a Beautifier from a different camera! As long as these cameras share sensitivity spectrums and primaries are alligned (using matrix3x3 transform).
 
-## I hope that this research will be useless one day
+## I hope that this research will be obsolete one day
 Ideally, all cinema cameras should provide an option to disable Beautifier in-camera, so virtual production teams can get linear footage directly from the camera without the need to reverse-engineer those transforms. Also, it would be great to have vendor-provided beautifiers to be able to re-apply them to keep the original look.
 
 Today we can see some steps in that direction. For instance, Blackmagic Design provides (since BRAW SDK Beta 3) an option to disable Gammut compresstion in BRAW SDK. BRAW format stores footage very close to sensor data and apply Beautifier on the unpacking stage. Since version Beta 3, it is possible to disable that step and get footage without Beautifier applied. See [BlackmagicRAW-SDK.pdf](https://documents.blackmagicdesign.com/DeveloperManuals/BlackmagicRAW-SDK.pdf) page 24.
