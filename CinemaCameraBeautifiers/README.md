@@ -1,26 +1,28 @@
 # Cinema Camera Beautifiers
 
-This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Those transforms make image non-linear and damage the most of techniques in virtual production such as keying, lighting calibration and led wall to camera matching. Since these transforms are not publicly documented, the goal is to reverse-engineer them. The article describes the methodology of measuring, canceling and re-applying such transforms.
+This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Those transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to reverse-engineer them. The article describes the methodology of measuring, canceling and re-applying such transforms.
 
 ## Known approach to linearization.
-Cinema camera row profiles are packed with transfer functions. To make image linear, we need to apply inverse transfer function to the image. 
-Those transfer functions are publicly documented for most of cameras.
+Cinema camera raw profiles are packed with transfer functions. To make an image linear, we need to apply an inverse transfer function to the image. 
+Those transfer functions are publicly documented for most cameras.
 
-Here is some references:
+Here are some references:
 - [SLog3](TransferFunctions/SLog3_SGamut3Cine_SGamut3.pdf)
 - [ARRI LogC4](TransferFunctions/ARRI_LogC4.pdf)
 - [Blackmagic Film Gen 5](TransferFunctions/BlackmagicGen5.pdf)
 
-However, it turns out that transfer function is not the only non-linear operation done by cinema cameras. There is also a **nonlinear gamut transform** happening in camera before transfer function is applied. So pipeline looks like this:
+However, it turns out that the transfer function is not the only non-linear operation done by cinema cameras. There is also a **nonlinear gamut transform** happening in the camera before the transfer function is applied. So the pipeline looks like this:
 
 `Sensor data (linear)` ->  `Gamut transform (non-linear)` ->  `Transfer function (non-linear)`  ->  `Encoded image`
 
 ## What is gamut nonlinearity?
-Since light is additive, all mixtures of any two colors should lay on a straight line between those colors. However, due to gamut nonlinearity, those mixtures are bent away from the straight line.
-In simple words, **Half-Yellow**(0.5 0.5 0) will not be between **Red**(1 0 0) and **Green**(0 1 0). There is a reason why this nonlinear gamut transform exists, but is a topic for another article.
+Since light is additive, all mixtures of any two colors should lie on a straight line between those colors. However, due to gamut nonlinearity, those mixtures are bent away from the straight line.
+In simple words, **Half-Yellow**(0.5 0.5 0) will not lie between **Red**(1 0 0) and **Green**(0 1 0). There is a reason why this nonlinear gamut transform exists, but that is a topic for another article.
 
 ## Naming
-Since I failed to find any established term for this transformation, I will call it **Beautifier** as we call it internally in [Antilatency](https://antilatency.com) company. Inverse operation will be called **Debeautifier**. This kind of naming addresses the fact that this transform is an artistic color grading, there is no single "correct" way to do it.
+Since I failed to find any established term for this transformation, I will call it **Beautifier** as we call it internally at [Antilatency](https://antilatency.com). The inverse operation will be called **Debeautifier**. This kind of naming addresses the fact that this transform is an artistic color grading; there is no single "correct" way to do it.
+Sometimes this phenomenon is referred to as **gamut compression**. However, I would prefer not to blur the meaning of that term, since it currently describes a transformation with a specific mathematical form — unlike the more **arbitrary transformations** applied inside cameras.
+Later in this article, the shape of this transform will be shown, and it will be clear that it is not a simple gamut compression.
 
 ## Why should we care about it?
 Virtual production is a set of mathematical operations. Any mathematical operations become invalid once artistic color grading is applied.
@@ -29,27 +31,27 @@ Otherwise, those operations will produce incorrect results.
 
 If the camera footage is the end of the pipeline or is followed by artistic color grading only, then Beautifier can be applied in-camera. In **Virtual production**, however, camera **footage is the input** of the pipeline, so it is critical **not to apply Beautifier** at this stage, or to ensure it can be undone.
 
-Several teams around the world are already found this problem, working in virtual production.
+Several teams around the world have already found this problem while working in virtual production.
 
 ### OpenVPCal @ Netflix
-[OpenVPCal](https://github.com/Netflix/OpenVPCal) is an open-source tool for camera and LED wall calibration in virtual production. The goal of the toolset is to be able to accurately predict a color captured by camera from a color sent to LED wall. 
+[OpenVPCal](https://github.com/Netflix/OpenVPCal) is an open-source tool for camera and LED wall calibration in virtual production. The goal of the toolset is to be able to accurately predict a color captured by a camera from a color sent to a LED wall. 
 In [this presentation](https://youtu.be/viFi5_wRqvc?t=546), the author explains a method to achieve better calibration results by using **desaturated color patches** for calibration. One of the reasons for that they mention is 
 >Camera’s internal calibration might “bend” highly saturated colours “by design”.
 
 ### Cybergaffer @ Antilatency
-First time I encountered this problem was during [Cybergaffer](https://cybergaffer.com) project, where accurate lighting calibration was required. During calibration, the software captures a reference white sphere illuminated by different light fixtures (rep channel). The goal of the algorithm is to be able to predict the color of the sphere under any combination of lighting parameters. This is required to solve inversed problem - to calculate lighting parameters for any given target illumination and configure physical lights accordingly.
-Independently, we found the same symptoms as Netflix team did, and came to the same solution - to **mix a portion of white led** into r,g,b leds to desaturate colors during the calibration, and later reconstruct original saturated colors.
+The first time I encountered this problem was during the [Cybergaffer](https://cybergaffer.com) project, where accurate lighting calibration was required. During calibration, the software captures a reference white sphere illuminated by different light fixtures (per channel). The goal of the algorithm is to be able to predict the color of the sphere under any combination of lighting parameters. This is required to solve the inverse problem - to calculate lighting parameters for any given target illumination and configure physical lights accordingly.
+Independently, we found the same symptoms as the Netflix team did, and came to the same solution - to **mix a portion of white LED** into R,G,B LEDs to desaturate colors during the calibration, and later reconstruct the original saturated colors.
 
 The problems with that approach are:
 - We never know how much desaturation is enough to avoid nonlinearity problems.
-- Desaturation reduces the determinant of the matrix, bringing the matrix axes closer to a collinear state. The smaller the determinant, the more noise and measurement inaccuracies will affect the calibration result, since to recover the original primaries from desaturated color patches, we need to multiply them by the inverted matrix. So we should be careful to not desaturate colors too much.
+- Desaturation reduces the determinant of the matrix, bringing the matrix axes closer to a collinear state. The smaller the determinant, the more noise and measurement inaccuracies will affect the calibration result, since to recover the original primaries from desaturated color patches, we need to multiply them by the inverted matrix. So we should be careful not to desaturate colors too much.
 - **This approach does not solve the problem.**
 
 That is a good hack though, and later in this article I will explain why it works for some colors.
 
 ## How can you spot gamut nonlinearity at home?
 <!-- ## How to find this nonlinearity with a simple experiment? -->
-The experiment called **Two Lights Experiment**, relies on the fact that light is additive. So to get image of a scene illuminated by two lights, we can sum images of each light on separately.
+The experiment called **Two Lights Experiment** relies on the fact that light is additive. So to get an image of a scene illuminated by two lights, we can sum images of each light on separately.
 This experiment can be done with minimal equipment.
 
 You will need:
@@ -77,26 +79,26 @@ For each experiment, we will capture 4 images:
 |   I3  |   A              |    B             |
 |   I4  |   B              |    A             |
 
-After **removing transfer function**, `I1`+`I2` should be equal to `I3`+`I4` if images are linear. Any difference shows nonlinearity.
+After **removing the transfer function**, `I1`+`I2` should be equal to `I3`+`I4` if images are linear. Any difference shows nonlinearity.
 
 ![Two Lights Experiment](./TwoLightsExperiment.png)
-On that image we can see the results of the experiments.
+In that image we can see the results of the experiments.
 Each row corresponds to one of the experiments above.
-Left column is `I1+I2`, middle column is `I3+I4`, right column is difference (positive and negative) between those sums.
+The left column is `I1+I2`, the middle column is `I3+I4`, the right column is the difference (positive and negative) between those sums.
 
 Experiment 1 shows very small difference (noise scale). That is what we expect.
-However, experiments 2, 3 and 4 show significant differences. That means that camera is nonlinear in gamut plane.
+However, experiments 2, 3 and 4 show significant differences. That means that the camera is nonlinear in the gamut plane.
 
 ## Measuring gamut nonlinearity
 The experiment above can only show that nonlinearity exists, but does not provide enough data to measure and reverse-engineer it. In order to do that, we've designed a measurement device that is able to precisely display linear colors. This device is based on RGB LEDs with excellent voltage stability and state-of-the-art PWM control.
 This device is able to display temperature-balanced color sequences with high accuracy, allowing us to probe the camera's response to various color stimuli.
 
 ![Camera Calibration Device Frame](CameraCalibratorFrame.png)
-*here is a frame from the calibration sequence. Central area shows the color to be averaged later to reduce noise, four dots at the corners act as reference points for alignment and as strobe to split the sequence into samples.*
+*Here is a frame from the calibration sequence. The central area shows the color to be averaged later to reduce noise; four dots at the corners act as reference points for alignment and as a strobe to split the sequence into samples.*
 
-12 minutes long calibration video contains 16x16x16=4096 color samples covering the entire RGB cube uniformly.
+A 12-minute-long calibration video contains 16x16x16=4096 color samples covering the entire RGB cube uniformly.
 
-Here is measured data:
+Here is the measured data:
 {% include 3DLUTViewer lut="bmpcc6k.cube" %}
 {% include Gap %}
 
@@ -104,8 +106,8 @@ First, let's remove transfer function.
 {% include 3DLUTViewer lut="bmpcc6k_TransferFunctionRemoved.cube" %}
 {% include Gap %}
 
-As you can see on that plot, there are two transformations still present:
-1. Matrix3x3 transform that responsible for brightness, color balance and linear gamut shaping.
+As you can see in that plot, there are two transformations still present:
+1. Matrix3x3 transform that is responsible for brightness, color balance and linear gamut shaping.
 2. Some other nonlinear transform
 
 Let's remove Matrix3x3 transform as well.
@@ -171,7 +173,34 @@ And here is the result of removing Beautifier without restoring native color bal
 There are still some minor defects, and that is probably due to lack of resolution of measurements.
 As further increasing the measurement resolution would take too long to capture, the next step is to implement a hybrid measurement sequence with a basic resolution across the entire cube and a high resolution on the `r+g+b=1` plane.
 
+## How Virtual Production pipeline should look like?
 
+### ..for LED wall
+- Get video from camera (beautified, packed with transfer function)
+- Remove transfer function
+- Remove Beautifier (apply Debeautifier)
+- Calculate and apply Matrix3x3 to match LED wall primaries
+In this stage of the pipeline any value sent to LED wall will be captured by camera with the same value. Of course, the display should be lenear.
+- Re-apply Beautifier on post if needed.
+
+### ..for chroma keying
+- Get video from camera (beautified, packed with transfer function)
+- Remove transfer function
+- Remove Beautifier (apply Debeautifier)
+- Apply keying algorithm in linear space
+- Composite foreground with linear background
+- Re-apply Beautifier on post if needed.
+
+Important note: Then we re-apply Beautifier on the last stage, we can use a Beautifier from a different camera! As long as these cameras share sensitivity spectrums and primaries are alligned (using matrix3x3 transform).
+
+## I hope that this research will be useless one day
+Ideally, all cinema cameras should provide an option to disable Beautifier in-camera, so virtual production teams can get linear footage directly from the camera without the need to reverse-engineer those transforms. Also, it would be great to have vendor-provided beautifiers to be able to re-apply them to keep the original look.
+
+Today we can see some steps in that direction. For instance, Blackmagic Design provides (since BRAW SDK Beta 3) an option to disable Gammut compresstion in BRAW SDK. BRAW format stores footage very close to sensor data and apply Beautifier on the unpacking stage. Since version Beta 3, it is possible to disable that step and get footage without Beautifier applied. See [BlackmagicRAW-SDK.pdf](https://documents.blackmagicdesign.com/DeveloperManuals/BlackmagicRAW-SDK.pdf) page 24.
+However, this does not help yet to get unbeautified video via HDMI/SDI outputs, required for virtual production. Moreover, to keep original color grading of the camera, we need a way to re-apply Beautifier after all virtual production operations are done, which is still not possible.
+
+## Dear color management system developers
+It would be great if there were a standard way to describe Beautifier/Debeautifier transforms, implemented in popular color management systems such as ACES, OpenColorIO, etc.
 
 
 
