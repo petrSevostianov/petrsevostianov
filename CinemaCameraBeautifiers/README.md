@@ -1,14 +1,14 @@
 ---
 title: Cinema Camera Beautifiers
 description: >
-  This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Those transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to reverse-engineer them. The article describes the methodology of measuring, canceling and re-applying such transforms.
+  This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Those transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to to characterize and model them. The article describes the methodology of measuring, canceling and re-applying such transforms.
 image: /CinemaCameraBeautifiers/Title.png
 ---
 
 # Cinema Camera Beautifiers
 ![Cinema Camera Beautifiers Title](Title.png)
 
-This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Such transforms make images non-linear and damage most of the techniques used in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to reverse-engineer them. The article describes the methodology of measuring, canceling and re-applying such transforms.
+This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Such transforms make images non-linear and damage most of the techniques used in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to to characterize and model them. The article describes the methodology of measuring, canceling and re-applying such transforms.
 
 ## Known approach to linearization.
 Cinema camera raw profiles are packed with transfer functions. To make an image linear, we have to apply the inverse transfer function to the image. 
