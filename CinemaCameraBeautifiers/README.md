@@ -46,8 +46,8 @@ Several teams around the world have already found this problem while working in 
 In [this presentation](https://youtu.be/viFi5_wRqvc?t=546), the author explains a method to achieve better calibration results by using **desaturated color patches** for calibration. One of the reasons for that they mention is 
 >Camera’s internal calibration might “bend” highly saturated colours “by design”.
 
-### Cybergaffer @ Antilatency
-The first time I encountered this problem was during the [Cybergaffer](https://cybergaffer.com) project, where accurate lighting calibration was required. During calibration, the software captures a reference white sphere illuminated by different light fixtures (per channel). The goal of the algorithm is to be able to predict the color of the sphere under any combination of lighting parameters. This is required to solve the inverse problem - to calculate lighting parameters for any given target illumination and configure physical lights accordingly.
+### CyberGaffer @ Antilatency
+The first time I encountered this problem was during the [CyberGaffer](https://cybergaffer.com) project, where accurate lighting calibration was required. During calibration, the software captures a reference white sphere illuminated by different light fixtures (per channel). The goal of the algorithm is to be able to predict the color of the sphere under any combination of lighting parameters. This is required to solve the inverse problem - to calculate lighting parameters for any given target illumination and configure physical lights accordingly.
 Independently, we found the same symptoms as the Netflix team did, and came to the same solution - to **mix a portion of the white LED light** into the R,G,B LEDs' output to desaturate colors during the calibration, and later reconstruct the original saturated colors.
 
 The problems with that approach are:
@@ -110,7 +110,7 @@ The same nonlinearity is observed there as well.
 That experiment shows that the camera images are *linear along brightness*, but *nonlinear across gamut plane*.
 
 ## Measuring and isolating gamut nonlinearity
-The experiment above can only show that nonlinearity exists, but does not provide enough data to measure and reverse-engineer it. In order to do that, we've designed a measurement device that is able to precisely display linear colors. This device is based on RGB LEDs with excellent voltage stability and state-of-the-art PWM control.
+The experiment above can only show that nonlinearity exists, but does not provide enough data to measure and characterize it. In order to do that, we've designed a measurement device that is able to precisely display linear colors. This device is based on RGB LEDs with excellent voltage stability and state-of-the-art PWM control.
 
 ![Camera Calibrator](CameraCalibrator.png)
 This device is able to display temperature-balanced color sequences with high accuracy, allowing us to probe the camera's response to various color stimuli.
