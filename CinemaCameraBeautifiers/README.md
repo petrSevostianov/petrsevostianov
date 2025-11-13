@@ -125,7 +125,7 @@ Here is the measured data:
 {% include 3DLUTViewer lut="bmpcc6k.cube" %}
 {% include Gap %}
 
-First, let's remove transfer function.
+First, let's **remove transfer function**.
 {% include 3DLUTViewer lut="bmpcc6k_TransferFunctionRemoved.cube" %}
 {% include Gap %}
 
@@ -133,7 +133,7 @@ As you can see in this plot, there are two transformations still present:
 1. Matrix3x3 transform that is responsible for brightness, color balance and linear gamut shaping.
 2. Some other nonlinear transform
 
-Let's remove Matrix3x3 transform as well.
+Let's **remove Matrix3x3** transform as well.
 This let us see only nonlinear transform. We will restore Matrix3x3 later in order to keep brightness and color balance and gamut unchanged.
 
 {% include 3DLUTViewer lut="bmpcc6k_Beautifier.cube" %}
