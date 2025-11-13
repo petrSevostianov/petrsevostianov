@@ -116,23 +116,6 @@
       });
     }
 
-    /*const params = new URLSearchParams(window.location.search);
-    const lutPath = params.get('lut');
-    console.log('LUT path:', lutPath);
-
-    //load lut file content if provided
-    if (lutPath) {
-      fetch(lutPath).then(res => {
-        if (!res.ok) {
-          throw new Error(`Failed to load LUT file: ${res.status} ${res.statusText}`);
-        }
-        return res.text();
-      }).then(text => {
-        console.log('LUT file content:', text);
-      }).catch(err => {
-        console.error(err);
-      })
-    }*/
 
     function BuildIdentityLUT(n = 17) {
       const arr = [];
@@ -158,49 +141,25 @@
 
       const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.01, 50);
       //camera.position.set(1.5, 1.2, 1.8);
-
+      scene.camera = camera;
 
       const controls = new OrbitControls( camera, renderer.domElement );
       // controls.update() must be called after any manual changes to the camera's transform
-      camera.position.set( -1.2, 1.2, 2 );
-      controls.target.set( 0.5, 0.4, -0.5 );
+      //camera.position.set( -1.2, 1.2, 2 );
+
+
+      controls.autoRotate = true;
       controls.update();
+      scene.controls = controls;
 
-
-      //unit cube wireframe from (0,0,0) to (1,1,1) with lines of color math the coordinate
-      function AddUnitCubeWireframe() {
-        const geometry = new THREE.BufferGeometry();
-        const vertices = new Float32Array([
-          0,0,0, 1,0,0,
-          1,0,0, 1,1,0,
-          1,1,0, 0,1,0,
-          0,1,0, 0,0,0,
-
-          0,0,1, 1,0,1,
-          1,0,1, 1,1,1,
-          1,1,1, 0,1,1,
-          0,1,1, 0,0,1,
-
-          0,0,0, 0,0,1,
-          1,0,0, 1,0,1,
-          1,1,0, 1,1,1,
-          0,1,0, 0,1,1,
-        ]);
-        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-        geometry.setAttribute('color', new THREE.BufferAttribute(vertices, 3));
-        const material = new THREE.LineBasicMaterial({ vertexColors: true });
-        const lines = new THREE.LineSegments(geometry, material);
-        scene.add(lines);
+      function stopAutoRotate() {
+        controls.autoRotate = false;
+        controls.removeEventListener('start', stopAutoRotate);
       }
-      AddUnitCubeWireframe();
 
-      // Render LUT as point cloud
-      
+      controls.addEventListener('start', stopAutoRotate);
 
-      // --- Run tests (keep existing tests, add one extra) ---
-      //const identity = buildIdentityLUT(17);
-      //AddLUTToScene(scene, lutData, 0.02);
-
+      AddUnitCubeWireframe(scene);
 
       // Animation loop
       function animate() {
@@ -242,6 +201,31 @@
       return data;
     }
 
+    function AddUnitCubeWireframe(scene) {
+      const geometry = new THREE.BufferGeometry();
+      const vertices = new Float32Array([
+        0,0,0, 1,0,0,
+        1,0,0, 1,1,0,
+        1,1,0, 0,1,0,
+        0,1,0, 0,0,0,
+
+        0,0,1, 1,0,1,
+        1,0,1, 1,1,1,
+        1,1,1, 0,1,1,
+        0,1,1, 0,0,1,
+
+        0,0,0, 0,0,1,
+        1,0,0, 1,0,1,
+        1,1,0, 1,1,1,
+        0,1,0, 0,1,1,
+      ]);
+      geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(vertices, 3));
+      const material = new THREE.LineBasicMaterial({ vertexColors: true });
+      const lines = new THREE.LineSegments(geometry, material);
+      scene.add(lines);
+    }
+
     function AddLUTToScene(scene, data) {
       const prev = scene.getObjectByName('lut_points');
       if (prev) {
@@ -279,7 +263,6 @@
         whitePoint[1] ** 2 +
         whitePoint[2] ** 2
       );
-      console.log('Distance to white point:', distanceToWhite);
 
       let pointSize = (distanceToWhite / lutSize) * 0.35;
 
@@ -293,29 +276,9 @@
       return pts;
     }
 
-    /*
-    	public static ChromaTriangle CreateFromCubeData(Vector3[] cubeData, int cubeSize, int layer) {
-		if (layer < 0 || layer >= cubeSize) {
-			throw new ArgumentException("Invalid layer index.");
-		}
-		var data = new Vector3[ChromaTriangle.CalcNumVertices(cubeSize)];
-
-		for (int g = 0; g < cubeSize; g++) {
-			for (int r = 0; r < cubeSize - g; r++) {
-				var b = cubeSize - g - r - 1;
-				int indexInCube = r + g * cubeSize + b * cubeSize * cubeSize;
-				int indexInTriangle = ChromaTriangle.GetIndex(r, g, cubeSize);
-				data[indexInTriangle] = cubeData[indexInCube];
-			}
-		}
-		var triangle = new ChromaTriangle(data);
-		return triangle;
-	}
-    */
     function SelectChromaTriangleFromLUT(lutData, layer){
       const cubeSize = Math.cbrt(lutData.length);
       layer = Math.min(Math.max(layer, 0), cubeSize - 1);
-      console.log('Selecting chroma triangle from LUT, cube size:', cubeSize, 'layer:', layer);
       const triangleData = [];
       for (let g = 0; g <= layer; g++) {
         for (let r = 0; r <= layer - g; r++) {
@@ -327,82 +290,6 @@
       return triangleData;
     }
 
-
-    /*
-    public Mesh GenerateChromaTriangleMesh(Vector3[] Data, Mesh? mesh = null) {
-		var numVertices = Data.Length;
-		var numFaces = (N - 1) * (N - 1);
-		var indices = new int[numFaces * 3];
-		var vertexData = new Vertex[numVertices * 2];
-		//var colors = new Color[numVertices];
-		int vi = 0;
-		for (int g = 0; g < N; g++) {
-			for (int r = 0; r < N - g; r++) {
-				var b = N - g - r - 1;
-				var nr = r / (float)(N - 1);
-				var ng = g / (float)(N - 1);
-				var nb = b / (float)(N - 1);
-				var position = R * nr + G * ng + B * nb;
-				vertexData[vi] = new Vertex {
-					position = position,
-					data = Data[vi]
-				};
-				//colors[vi] = new Color(nr, ng, nb);
-				vi++;
-			}
-
-		}
-
-		int ti = 0;
-		vi = 0;
-		for (int g = 0; g < N - 1; g++) {
-			int rowLength = N - g - 1;
-			for (int r = 0; r < rowLength - 1; r++) {
-				indices[ti++] = vi;
-				indices[ti++] = vi + rowLength + 1;
-				indices[ti++] = vi + 1;
-
-				indices[ti++] = vi + 1;
-				indices[ti++] = vi + rowLength + 1;
-				indices[ti++] = vi + rowLength + 2;
-				vi++;
-			}
-			indices[ti++] = vi;
-			indices[ti++] = vi + rowLength + 1;
-			indices[ti++] = vi + 1;
-			vi++;
-			vi++;
-		}
-
-
-		if (mesh == null || mesh.vertexCount != numVertices || mesh.subMeshCount != 1) {
-			mesh = new Mesh();
-			mesh.name = "ChromaTriangle";
-		}
-
-		var flags =
-			UnityEngine.Rendering.MeshUpdateFlags.DontValidateIndices
-			| UnityEngine.Rendering.MeshUpdateFlags.DontResetBoneBounds
-			| UnityEngine.Rendering.MeshUpdateFlags.DontNotifyMeshUsers
-			| UnityEngine.Rendering.MeshUpdateFlags.DontRecalculateBounds;
-
-		var layout = new[]{
-			new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
-			new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 3)
-		};
-		mesh.SetVertexBufferParams(numVertices, layout);
-		mesh.SetVertexBufferData(vertexData, 0, 0, numVertices, 0, flags);
-		mesh.SetIndexBufferParams(indices.Length, IndexFormat.UInt32);
-		mesh.SetIndexBufferData(indices, 0, 0, indices.Length, flags);
-
-		mesh.subMeshCount = 1;
-		mesh.SetSubMesh(0, new SubMeshDescriptor(0, indices.Length));
-
-		mesh.RecalculateBounds();
-
-		return mesh;
-	}
-    */
 
     function AddChromaTriangleToScene(scene, triangleData) {
       let cubeSize = (Math.sqrt( 8*triangleData.length +1 ) - 1) / 2;
@@ -471,7 +358,14 @@
       scene.add(wireframe);
     }
 
-    function AddRGBTrianglesToScene(scene) {
+    function AddBoundingPointsToScene(scene, points) {
+      if (scene['bounding_points'] === undefined) {
+        scene['bounding_points'] = [];
+      }
+      scene['bounding_points'].push(...points);
+    }
+
+    function AddRGBTriangleToScene(scene) {
       //white triangle over 3 points (1,0,0), (0,1,0), (0,0,1)
       const geometry = new THREE.BufferGeometry();
       const positions = new Float32Array([
@@ -483,6 +377,45 @@
       const material = new THREE.LineBasicMaterial({ color: 0xffffff });
       const lines = new THREE.LineSegments(geometry, material);
       scene.add(lines);
+    }
+
+    function ComputeSceneBoundingBox(scene) {
+      let box = null;
+      scene.traverse(obj => {
+        if (obj.geometry) {
+          obj.geometry.computeBoundingBox();
+          const geomBox = obj.geometry.boundingBox.clone();
+          //geomBox.applyMatrix4(obj.matrixWorld); // world-space box
+          if (box === null) {
+            box = geomBox;
+          } else {
+            box.union(geomBox);
+          }
+        }
+      });
+
+      return box;
+    }
+
+    function ApplyLUTData(data){
+      AddLUTToScene(scene, data);
+      if (showChromaTriangle !== null) {
+        var layer = parseInt(showChromaTriangle);
+        if (!isNaN(layer) && layer > 0) {
+          const triangleData = SelectChromaTriangleFromLUT(data, layer);
+          AddChromaTriangleToScene(scene, triangleData);
+          AddRGBTriangleToScene(scene);
+        }
+      }
+      const bbox = ComputeSceneBoundingBox(scene);
+      let center = bbox.getCenter(new THREE.Vector3());
+      const size = bbox.getSize(new THREE.Vector3());
+      const maxDimension = Math.max(size.x, size.y, size.z);
+      center.z *= -1; // invert z back
+      scene.controls.target.copy(center);
+      let targetToCamera =  new THREE.Vector3(0, 1, 3).multiplyScalar(maxDimension);
+      scene.camera.position.copy(targetToCamera).add(center);
+
     }
       
 
@@ -502,18 +435,7 @@
       });
     }
 
-    function ApplyLUTData(data){
-      AddLUTToScene(scene, data);
-      if (showChromaTriangle !== null) {
-        var layer = parseInt(showChromaTriangle);
-        if (!isNaN(layer) && layer > 0) {
-          console.log('Showing chroma triangle for layer:', layer);
-          const triangleData = SelectChromaTriangleFromLUT(data, layer);
-          AddChromaTriangleToScene(scene, triangleData);
-          AddRGBTrianglesToScene(scene);
-        }
-      }
-    }
+
     
     
 
