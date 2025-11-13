@@ -1,7 +1,7 @@
 ---
 title: Cinema Camera Beautifiers
 description: >
-  This study is focused on exploring nonlinear gamut transforms done by cinema cameras. Those transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to to characterize and model them. The article describes the methodology of measuring, canceling and re-applying such transforms.
+  This study is focused on exploring nonlinear gamut transforms done by cinema cameras. These transforms make images non-linear and damage most of the techniques in virtual production such as keying, lighting calibration and LED wall to camera matching. Since these transforms are not publicly documented, the goal is to characterize and model them. The article describes the methodology of measuring, canceling and re-applying such transforms.
 image: /CinemaCameraBeautifiers/Title.png
 ---
 
@@ -12,7 +12,7 @@ This study is focused on exploring nonlinear gamut transforms done by cinema cam
 
 ## Known approach to linearization.
 Cinema camera raw profiles are packed with transfer functions. To make an image linear, we have to apply the inverse transfer function to the image. 
-Those transfer functions are publicly documented for most cameras.
+These transfer functions are publicly documented for most cameras.
 
 Here are some references:
 - [SLog3](TransferFunctions/SLog3_SGamut3Cine_SGamut3.pdf)
@@ -24,7 +24,7 @@ However, it turns out that the transfer function is not the only non-linear oper
 `Sensor data (linear)` ->  `Gamut transform (non-linear)` ->  `Transfer function (non-linear)`  ->  `Encoded image`
 
 ## What is gamut nonlinearity?
-Since light is additive, every mixture of two arbitrary colors must lie on a straight line between those colors. However, due to gamut nonlinearity, those mixtures are bent away from the straight line.
+Since light is additive, every mixture of two arbitrary colors must lie on a straight line between these colors. However, due to gamut nonlinearity, these mixtures are bent away from the straight line.
 In simple words, **Half-Yellow**(0.5 0.5 0) will not lie between **Red**(1 0 0) and **Green**(0 1 0). There is a reason why this nonlinear gamut transform exists, but that is a topic for another article.
 
 ## Naming
@@ -35,7 +35,7 @@ Later in this article, the shape of this transform will be shown, and it will be
 ## Why should we care about it?
 Virtual production is a set of mathematical operations. Any mathematical operation becomes invalid once artistic color grading is applied.
 As I mentioned, **Beautifier** has its role, but it should be applied after all mathematical operations (e.g., keying, lighting calibration, display-to-camera mapping) are completed, **at the end of the pipeline**.
-Otherwise, those operations will produce incorrect results. 
+Otherwise, these operations will produce incorrect results. 
 
 If the camera footage is at the end of the pipeline or is followed by artistic color grading only, then Beautifier can be applied in-camera. In **Virtual production**, however, camera **footage is the input** of the pipeline, so it is critical **not to apply Beautifier** at this stage, or to ensure it can be undone.
 
@@ -69,7 +69,7 @@ You will need:
 
 ![Two Lights Experiment Setup](./TwoLightsExperimentSetup.png)
 
-First lets capture 4 images (I1, I2, I3, I4), setting lights to one of two colors (states) as shown in the table below.
+First let's capture 4 images (I1, I2, I3, I4), setting lights to one of two colors (states) as shown in the table below.
 
 | Image |          Light 1 |          Light 2 |
 |-------|------------------|------------------|
@@ -78,7 +78,7 @@ First lets capture 4 images (I1, I2, I3, I4), setting lights to one of two color
 |   I3  |   Black          |    White         |
 |   I4  |   White          |    Black         |
 
-Then we remove transfer function from those images, compute the two sums: `I1+I2` and `I3+I4`, and compare them. If the camera were linear, those sums would be equal. Non-zero difference indicates nonlinearity.
+Then we remove transfer function from these images, compute the two sums: `I1+I2` and `I3+I4`, and compare them. If the camera were linear, those sums would be equal. Non-zero difference indicates nonlinearity.
 
 ![Two Lights Experiment Black-White Results](./TwoLightsExperiment_BW.png)
 As expected, the difference is very small (noise scale). That means that mixtures of black and white are **linear**.
@@ -96,7 +96,7 @@ So our 4 images in this experiment are:
 **Results for Red-Green:**
 ![Two Lights Experiment Red-Green Results](./TwoLightsExperiment_RG.png)
 
-As we can see, there is a significant difference between those sums. That means that mixtures of Red and Green are **nonlinear**. 
+As we can see, there is a significant difference between these sums. That means that mixtures of Red and Green are **nonlinear**. 
 
 We can perform the same experiment for other color pairs as well.
 
@@ -129,7 +129,7 @@ First, let's remove transfer function.
 {% include 3DLUTViewer lut="bmpcc6k_TransferFunctionRemoved.cube" %}
 {% include Gap %}
 
-As you can see in that plot, there are two transformations still present:
+As you can see in this plot, there are two transformations still present:
 1. Matrix3x3 transform that is responsible for brightness, color balance and linear gamut shaping.
 2. Some other nonlinear transform
 
@@ -141,15 +141,15 @@ This plot is **Beautifier** alone.
 {% include Gap %}
 
 ## What is the general form of the Beautifier function?
-From the **Two Lights Experiment** we already know that all colors between black and white are linear. That means that we are looking for a function that does not change linearity between those colors.
+From the **Two Lights Experiment** we already know that all of the colors between black and white are linear. This means that we are looking for a function that does not change linearity between these colors.
 Additionally, we can perform several more experiments for mixtures of black with different colors, and confirm that those mixtures are also linear.
 
-That leads us to the conclusion that the function we are looking for is a[Homogeneous function](https://en.wikipedia.org/wiki/Homogeneous_function).
+This leads us to the conclusion that the function we are looking for is a [Homogeneous function](https://en.wikipedia.org/wiki/Homogeneous_function).
 <div align="center">
   <img src="HomogeneousFunctionFormula.svg" alt="f(cu) = cf(u)" height="30">
 </div>
 
-That means that if we scale input color by some factor and apply the function, it is equivalent to applying the function first and then scaling output by the same factor.
+This means that if we scale input color by some factor and apply the function, it is equivalent to applying the function first and then scaling output by the same factor.
 
 ## Visualizing a homogeneous transformation
 To visualize a homogeneous transformation, we can slice through the RGB cube with a plane that passes through the red, green and blue points of the cube. Any distortions of the resulting triangle will represent the distortions of the entire cube, because all of the other colors will also lie on the scaled versions of this triangle.
@@ -158,19 +158,19 @@ To get such a slice, we can select samples where indices R+G+B=15 (our cube is 1
 Since all of the slices are similarly distorted, we can select any slice, but slice №15 has the highest resolution.
 
 {% include 3DLUTViewer lut="bmpcc6k_Beautifier.cube" showChromaTriangle=16 %}
-White triangle on that plot represents an undistorted slice.
+The white triangle on this plot represents an undistorted slice.
 
-If you look closely at the shape of the distortion, you can notice that near the center (that represents less saturated colors) there is no distortion at all. This explains why the **desaturation trick** works and why it doesn't. Using desaturated colors we can find a 3x3 matrix that will work well for the central region of colors, but as soon as we move to more saturated colors, the distortion becomes significant and matrix approximation fails.
+If you look closely at the shape of the distortion, you can notice that near the center (it represents less saturated colors) there is no distortion at all. This explains why the **desaturation trick** works and why it doesn't. Using desaturated colors we can find a 3x3 matrix that will work well for the central region of colors, but as soon as we move to more saturated colors, the distortion becomes significant and matrix approximation fails.
 
 ## In what way can these distortions be represented?
-As we can see from the plot above, this distortion is unlike any smooth function such as polynomial or spline. It has an almost undistorted area in the center, with significantly distorted areas near the edges. Thus the best way to represent it is using a LUT-based approach. Technically, we can use a 3D LUT for that, but the problem of 3D LUTs is that resolution of a 3D LUT decreases with brightness. If a 3D LUT has a size of 33x33x33 it has 32 steps between red(1,0,0) and green(0,1,0), but only 8 steps between dark-red(0.25,0,0) and dark-green(0,0.25,0). Another problem is memory consumption, for instance, to have 512 steps between red and green, we will need 512x512x512 = 134 million samples, that will take more than 1.6 GB of memory in binary form, and much more in text form.
+As we can see from the plot above, this distortion is unlike any smooth function such as polynomial or spline. It has an almost undistorted area in the center, with significantly distorted areas near the edges. Thus the best way to represent it is using a LUT-based approach. Technically, we can use a 3D LUT for this, but the problem of 3D LUTs is that the resolution of a 3D LUT decreases with brightness. If a 3D LUT has a size of 33x33x33 it has 32 steps between red(1,0,0) and green(0,1,0), but only 8 steps between dark-red(0.25,0,0) and dark-green(0,0.25,0). Another problem is memory consumption, for instance, to have 512 steps between red and green, we will need 512x512x512 = 134 million samples, that will take more than 1.6 GB of memory in binary form, and much more in text form.
 
 Instead, we can invent a new type of LUT that is based on homogeneous coordinates. Such a LUT will have constant resolution across brightness levels, and will require much less memory.
 
 ## Introducing 2D LUT
 To have 512 steps between red and green, it uses 1.6Mb (not GB) of memory and has constant resolution across brightness levels. It can be stored as a simple 2D image. Since the shape of the described space is a triangle, we can pack it into a rectangle by cutting off a corner and flipping it.
 
-If we display the gammut transform for the camera I used for this article as a 2D LUT, it looks like this:
+If we display the gamut transform for the camera I used for this article as a 2D LUT, it looks like this:
 
 **Beautifier**
 
@@ -193,7 +193,7 @@ And here is the result of removing the Beautifier without restoring native color
 {% include 3DLUTViewer lut="bmpcc6k_DebeautifiedWithoutMatrixRestore.cube" %}
 {% include Gap %}
 
-There are still some minor defects, and that is probably due to lack of resolution of measurements.
+There are still some minor defects, and this is probably due to lack of resolution of measurements.
 As further increasing the measurement resolution would take too long to capture, the next step is to implement a hybrid measurement sequence with a basic resolution across the entire cube and a high resolution on the `r+g+b=1` plane.
 
 ## How Virtual Production pipeline should look like?
@@ -202,7 +202,7 @@ As further increasing the measurement resolution would take too long to capture,
 - Get video from camera (beautified, packed with transfer function)
 - Remove transfer function
 - Remove Beautifier (apply Debeautifier)
-- Calculate and apply Matrix3x3 to match LED wall primaries
+- Calculate and apply Matrix3x3 to match LED wall primaries.
 In this stage of the pipeline any value sent to LED wall will be captured by camera with the same value. Of course, the display should be linear.
 - Re-apply Beautifier on post if needed.
 
@@ -214,12 +214,12 @@ In this stage of the pipeline any value sent to LED wall will be captured by cam
 - Composite foreground with linear background
 - Re-apply Beautifier on post if needed.
 
-Important note: When we re-apply the Beautifier at the last stage, we can use a Beautifier from a different camera! As long as these cameras share sensitivity spectrums and primaries are alligned (using matrix3x3 transform).
+Important note: When we re-apply the Beautifier at the last stage, we can use a Beautifier from a different camera! As long as these cameras share sensitivity spectrums and primaries are aligned (using matrix3x3 transform).
 
-## I hope that this research will be obsolete one day
-Ideally, all cinema cameras should provide an option to disable the Beautifier in-camera, so virtual production teams can get linear footage directly from the camera without the need to reverse-engineer those transforms. Also, it would be great to have vendor-provided beautifiers to be able to re-apply them to keep the original look.
+## I hope this research will be obsolete one day
+Ideally, all cinema cameras should provide an option to disable the Beautifier in-camera, so virtual production teams can get linear footage directly from the camera without the need to reverse-engineer these transforms. Also, it would be great to have vendor-provided beautifiers to be able to re-apply them to keep the original look.
 
-Today we can see some steps being taken in that direction. For instance, Blackmagic Design provides (since BRAW SDK Beta 3) an option to disable Gammut compresstion in BRAW SDK. BRAW format stores footage very close to sensor data and apply Beautifier on the unpacking stage. Since version Beta 3, it is possible to disable that step and get footage without Beautifier applied. See [BlackmagicRAW-SDK.pdf](https://documents.blackmagicdesign.com/DeveloperManuals/BlackmagicRAW-SDK.pdf) page 24.
+Today we can see some steps being taken in this direction. For instance, Blackmagic Design provides (since BRAW SDK Beta 3) an option to disable Gamut compresstion in BRAW SDK. BRAW format stores footage very close to sensor data and applies the Beautifier on the unpacking stage. Since version Beta 3, it is possible to disable this step and get footage without Beautifier applied. See [BlackmagicRAW-SDK.pdf](https://documents.blackmagicdesign.com/DeveloperManuals/BlackmagicRAW-SDK.pdf) page 24.
 However, this does not help yet to get unbeautified video via HDMI/SDI outputs, required for virtual production. Moreover, to keep original color grading of the camera, we need a way to re-apply the Beautifier after all the virtual production operations are done, which is still not possible.
 
 ## Dear color management system developers
