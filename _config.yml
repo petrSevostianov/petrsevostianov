@@ -13,6 +13,7 @@ sidebar:
 markdown: kramdown
 remote_theme: BDHU/minimalist
 color-scheme: light
+logo: me1.png
 
 #remote_theme: benbalter/retlab
 
