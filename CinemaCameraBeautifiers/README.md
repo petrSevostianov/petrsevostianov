@@ -134,7 +134,7 @@ As you can see in this plot, there are two transformations still present:
 2. Some other nonlinear transform
 
 Let's **remove Matrix3x3** transform as well.
-This let us see only nonlinear transform. We will restore Matrix3x3 later in order to keep brightness and color balance and gamut unchanged.
+This lets us see only nonlinear transform. We will restore Matrix3x3 later in order to keep brightness and color balance and gamut unchanged.
 
 {% include 3DLUTViewer lut="bmpcc6k_Beautifier.cube" %}
 This plot is **Beautifier** alone.
@@ -183,7 +183,7 @@ If we display the gamut transform for the camera I used for this article as a 2D
 An important property of a 2D LUT is that it is a superset of Matrix3x3 transform. Any Matrix3x3 can be represented as a 2D LUT. The smallest 2D LUT of 3 pixels is actually a Matrix3x3 multiplication.
 
 Previously, I mentioned that we removed Matrix3x3 transform to visualize the Beautifier alone.
-Since a 2D LUT includes Matrix3x3, we can represent a 2DLUT and Matrix3x3 transform together as a single 2D LUT.
+Since a 2D LUT includes Matrix3x3, we can represent a 2D LUT and Matrix3x3 transform together as a single 2D LUT.
 
 Here is the result of removing the Beautifier from the original footage.
 {% include 3DLUTViewer lut="bmpcc6k_Debeautified.cube" %}
